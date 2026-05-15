@@ -527,53 +527,89 @@ class _LiveGameScreenState extends State<LiveGameScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Game is saved. Resume anytime from Home.'), duration: Duration(seconds: 2)));
-        Navigator.of(context).pop();
-      },
+      canPop: true,
       child: Scaffold(
         appBar: AppBar(
-          title: Column(children: [
-            const Text("Live Game"),
-            Text('⏱ ${_fmtElapsed(_elapsed)}  •  📍 $_location',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal)),
-          ]),
-          toolbarHeight: 64,
-          actions: [
-            // Admin lock toggle
-            IconButton(
-              icon: Icon(_isAdmin ? Icons.lock_open : Icons.lock_outline,
-                color: _isAdmin ? Colors.tealAccent : Colors.grey),
-              tooltip: _isAdmin ? 'Admin: ON' : 'Admin: OFF (view only)',
-              onPressed: () => setState(() {
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            tooltip: 'Back to Home',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Game is saved. Resume anytime from Home.'), duration: Duration(seconds: 2)));
+              Navigator.of(context).pop();
+            },
+          ),
+          title: Row(children: [
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Live Game", style: TextStyle(fontSize: 16)),
+                Text('⏱ ${_fmtElapsed(_elapsed)}  •  📍 $_location',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
+                  overflow: TextOverflow.ellipsis),
+              ],
+            )),
+            // Admin lock — prominent chip right of the title
+            GestureDetector(
+              onTap: () => setState(() {
                 _isAdmin = !_isAdmin;
                 AppSettings.isAdminMode = _isAdmin;
               }),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _isAdmin ? Colors.tealAccent.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _isAdmin ? Colors.tealAccent : Colors.grey, width: 1),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(_isAdmin ? Icons.lock_open : Icons.lock_outline,
+                    size: 14, color: _isAdmin ? Colors.tealAccent : Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(_isAdmin ? 'Admin' : 'Locked',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold,
+                      color: _isAdmin ? Colors.tealAccent : Colors.grey)),
+                ]),
+              ),
             ),
+          ]),
+          toolbarHeight: 56,
+          actions: [
             // View toggle
             IconButton(
-              icon: Icon(_isTableView ? Icons.view_list : Icons.circle_outlined),
-              tooltip: _isTableView ? 'Switch to List View' : 'Switch to Table View',
+              icon: Icon(_isTableView ? Icons.view_list : Icons.circle_outlined, size: 22),
+              tooltip: _isTableView ? 'List View' : 'Table View',
               onPressed: () => setState(() {
                 _isTableView = !_isTableView;
                 AppSettings.useTableView = _isTableView;
               }),
             ),
-            // Activity log
-            IconButton(icon: const Icon(Icons.receipt_long_outlined), tooltip: 'Activity Log', onPressed: _showActivityLog),
-            // Pot expenses
-            if (_isAdmin) IconButton(icon: const Icon(Icons.fastfood_outlined), tooltip: 'Pot Expenses', onPressed: _showPotExpenseDialog),
-            // Hand rankings
-            IconButton(icon: const Icon(Icons.style_outlined), tooltip: 'Hand Rankings', onPressed: _showHandRankings),
-            // Who's winning
-            IconButton(icon: const Icon(Icons.emoji_events_outlined), tooltip: 'Game Status', onPressed: _showWhosWinning),
-            // Add player
-            if (_isAdmin) IconButton(icon: const Icon(Icons.person_add_alt_1), tooltip: 'Add Player', onPressed: _showAddPlayerDialog),
-            // End game
-            if (_isAdmin) IconButton(icon: const Icon(Icons.check_circle_outline), tooltip: 'End Game', onPressed: _showEndGameDialog),
+            // Overflow menu for everything else
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              tooltip: 'More',
+              onSelected: (value) {
+                switch (value) {
+                  case 'log': _showActivityLog(); break;
+                  case 'expenses': _showPotExpenseDialog(); break;
+                  case 'rankings': _showHandRankings(); break;
+                  case 'status': _showWhosWinning(); break;
+                  case 'add_player': _showAddPlayerDialog(); break;
+                  case 'end_game': _showEndGameDialog(); break;
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'log', child: ListTile(leading: Icon(Icons.receipt_long_outlined), title: Text('Activity Log'), dense: true)),
+                if (_isAdmin)
+                  const PopupMenuItem(value: 'expenses', child: ListTile(leading: Icon(Icons.fastfood_outlined), title: Text('Pot Expenses'), dense: true)),
+                const PopupMenuItem(value: 'rankings', child: ListTile(leading: Icon(Icons.style_outlined), title: Text('Hand Rankings'), dense: true)),
+                const PopupMenuItem(value: 'status', child: ListTile(leading: Icon(Icons.emoji_events_outlined), title: Text('Game Status'), dense: true)),
+                if (_isAdmin)
+                  const PopupMenuItem(value: 'add_player', child: ListTile(leading: Icon(Icons.person_add_alt_1), title: Text('Add Player'), dense: true)),
+                if (_isAdmin)
+                  const PopupMenuItem(value: 'end_game', child: ListTile(leading: Icon(Icons.check_circle_outline, color: Colors.red), title: Text('End Game', style: TextStyle(color: Colors.red)), dense: true)),
+              ],
+            ),
           ],
         ),
         body: ValueListenableBuilder<Box<GamePlayer>>(

@@ -35,9 +35,9 @@ class PokerTableView extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final size = min(constraints.maxWidth, constraints.maxHeight * 0.85);
-        final tableRadius = size * 0.32;
-        final seatRadius = size * 0.44;
+        final size = min(constraints.maxWidth - 24, constraints.maxHeight * 0.85); // 24px horizontal padding
+        final tableRadius = size * 0.30;
+        final seatRadius = size * 0.42;
         final centerX = constraints.maxWidth / 2;
         final centerY = constraints.maxHeight * 0.45;
 
@@ -74,8 +74,13 @@ class PokerTableView extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text('in play', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
                     const SizedBox(height: 4),
-                    Text('📍 $location', style: const TextStyle(color: Colors.white60, fontSize: 11),
-                        overflow: TextOverflow.ellipsis),
+                    const Text('📍', style: TextStyle(fontSize: 11)),
+                    const SizedBox(height: 1),
+                    SizedBox(
+                      width: tableRadius * 1.2,
+                      child: Text(location, style: const TextStyle(color: Colors.white60, fontSize: 10),
+                        overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, maxLines: 1),
+                    ),
                   ],
                 ),
               ),
@@ -92,8 +97,8 @@ class PokerTableView extends StatelessWidget {
               final isOverextended = gp.totalBuyIn >= defaultBuyIn * 3 && !gp.hasCashedOut;
 
               return Positioned(
-                left: x - 36,
-                top: y - 40,
+                left: (x - 36).clamp(4, constraints.maxWidth - 76),
+                top: (y - 40).clamp(4, constraints.maxHeight - 90),
                 child: GestureDetector(
                   onTap: isAdmin ? () => onPlayerTap(gp) : null,
                   child: _PlayerSeat(gamePlayer: gp, cs: cs, isOverextended: isOverextended),
