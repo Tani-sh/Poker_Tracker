@@ -12,7 +12,7 @@ import 'services/auth_service.dart';
 import 'utils/app_theme.dart';
 
 /// App version — displayed in Settings and used for update checks.
-const String appVersion = '3.0.0';
+const String appVersion = '3.1.0';
 
 /// Initialize Firebase, Hive adapters, and open all boxes.
 /// Returns a NEW Future each time (so retry works).

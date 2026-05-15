@@ -72,20 +72,82 @@ class _LiveGameScreenState extends State<LiveGameScreen> {
 
   // ---- Actions ----
 
-  void _addBuyIn(GamePlayer gp, int amount) {
+  void _processBuyIn(GamePlayer targetPlayer, int amount, GamePlayer? sourcePlayer) {
+    setState(() {
+      targetPlayer.addBuyIn(amount);
+      if (sourcePlayer != null) {
+        sourcePlayer.addBuyIn(-amount);
+      }
+    });
+
+    final cs = AppSettings.currencySymbol;
+    if (sourcePlayer == null) {
+      AppSettings.addLogEntry('${targetPlayer.player.emoji} ${targetPlayer.player.name} re-bought — $cs$amount (total: $cs${targetPlayer.totalBuyIn})');
+    } else {
+      AppSettings.addLogEntry('🔄 ${targetPlayer.player.name} borrowed $cs$amount chips from ${sourcePlayer.player.name}');
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(sourcePlayer == null
+            ? 'Added $cs$amount buy-in for ${targetPlayer.player.name}'
+            : 'Transferred $cs$amount from ${sourcePlayer.player.name} to ${targetPlayer.player.name}'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _addBuyIn(GamePlayer targetPlayer, int amount) {
     final maxLimit = AppSettings.maxBuyInPerPlayer;
-    if (maxLimit > 0 && (gp.totalBuyIn + amount) > maxLimit) {
+    if (maxLimit > 0 && (targetPlayer.totalBuyIn + amount) > maxLimit) {
       final cs = AppSettings.currencySymbol;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('⛔ ${gp.player.name} would exceed the $cs$maxLimit buy-in limit!'), backgroundColor: Colors.red.shade700),
+        SnackBar(content: Text('⛔ ${targetPlayer.player.name} would exceed the $cs$maxLimit buy-in limit!'), backgroundColor: Colors.red.shade700),
       );
       return;
     }
-    setState(() => gp.addBuyIn(amount));
-    final cs = AppSettings.currencySymbol;
-    AppSettings.addLogEntry('${gp.player.emoji} ${gp.player.name} re-bought — $cs$amount (total: $cs${gp.totalBuyIn})');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Added $cs$amount buy-in for ${gp.player.name}'), duration: const Duration(seconds: 2)),
+
+    final otherPlayers = _liveGameBox.values.where((p) => p.key != targetPlayer.key && !p.hasCashedOut).toList();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text("Source for ${AppSettings.currencySymbol}$amount Buy-in?"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.account_balance, color: Colors.blueAccent),
+                title: const Text("The Bank"),
+                subtitle: const Text("New chips from the case"),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                tileColor: Colors.blueAccent.withValues(alpha: 0.1),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _processBuyIn(targetPlayer, amount, null);
+                },
+              ),
+              if (otherPlayers.isNotEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.only(top: 16, bottom: 8, left: 16),
+                  child: Text("Or borrowed from:", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                ...otherPlayers.map((sourcePlayer) => ListTile(
+                  leading: Text(sourcePlayer.player.emoji, style: const TextStyle(fontSize: 24)),
+                  title: Text(sourcePlayer.player.name),
+                  subtitle: Text("Available: ${AppSettings.currencySymbol}${sourcePlayer.totalBuyIn - (sourcePlayer.cashOutAmount ?? 0)}"),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _processBuyIn(targetPlayer, amount, sourcePlayer);
+                  },
+                )),
+              ]
+            ],
+          ),
+        ),
+      ),
     );
   }
 

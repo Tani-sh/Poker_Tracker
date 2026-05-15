@@ -85,17 +85,28 @@ class PlayerActionSheet {
                           fontSize: 13, color: Colors.grey.shade500)),
                 ),
                 const SizedBox(height: 8),
-                ...gamePlayer.buyIns.asMap().entries.map((e) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(e.key == 0 ? '  Initial Buy-in' : '  Re-buy #${e.key}'),
-                          Text('$cs${e.value}',
-                              style: const TextStyle(fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    )),
+                ...gamePlayer.buyIns.asMap().entries.map((e) {
+                      final isNegative = e.value < 0;
+                      final title = isNegative 
+                          ? '  Lent Chips' 
+                          : (e.key == 0 ? '  Initial Buy-in' : '  Re-buy #${e.key}');
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(title),
+                            Text(
+                              isNegative ? '-$cs${e.value.abs()}' : '+$cs${e.value}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isNegative ? Colors.orangeAccent : Colors.white,
+                              )
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                 const Divider(height: 20),
               ],
 
